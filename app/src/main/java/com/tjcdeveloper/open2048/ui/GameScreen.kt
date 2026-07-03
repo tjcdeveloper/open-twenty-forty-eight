@@ -29,11 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.tjcdeveloper.open2048.game.Direction
 import com.tjcdeveloper.open2048.ui.theme.LocalOpenColors
 import com.tjcdeveloper.open2048.ui.theme.MoreVertIcon
@@ -48,27 +46,40 @@ fun GameScreen(
     onOpenSettings: () -> Unit,
 ) {
     var confirmNewGame by remember { mutableStateOf(false) }
+    var pendingGridSize by remember { mutableStateOf<Int?>(null) }
     val requestNewGame = {
-        if (viewModel.game.score > 0 && !viewModel.isGameOver) {
-            confirmNewGame = true
-        } else {
-            viewModel.newGame()
+        if (viewModel.hasProgressToLose) confirmNewGame = true else viewModel.newGame()
+    }
+    val requestGridSize: (Int) -> Unit = { size ->
+        when {
+            size == viewModel.gridSize -> Unit
+            viewModel.hasProgressToLose -> pendingGridSize = size
+            else -> viewModel.setGridSize(size)
         }
     }
 
     if (widthSizeClass == WindowWidthSizeClass.Compact) {
         CompactGameLayout(viewModel, requestNewGame, onOpenSettings)
     } else {
-        ExpandedGameLayout(viewModel, requestNewGame, onOpenSettings)
+        ExpandedGameLayout(viewModel, requestNewGame, requestGridSize, onOpenSettings)
     }
 
     if (confirmNewGame) {
-        NewGameConfirmDialog(
+        ConfirmNewGameDialog(
             onConfirm = {
                 confirmNewGame = false
                 viewModel.newGame()
             },
             onDismiss = { confirmNewGame = false },
+        )
+    }
+    pendingGridSize?.let { size ->
+        ConfirmNewGameDialog(
+            onConfirm = {
+                pendingGridSize = null
+                viewModel.setGridSize(size)
+            },
+            onDismiss = { pendingGridSize = null },
         )
     }
 }
@@ -136,6 +147,7 @@ private fun CompactGameLayout(
 private fun ExpandedGameLayout(
     viewModel: GameViewModel,
     onNewGame: () -> Unit,
+    onSelectGridSize: (Int) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val colors = LocalOpenColors.current
@@ -193,7 +205,7 @@ private fun ExpandedGameLayout(
             SectionLabel("GRID SIZE")
             GridSizeChips(
                 selected = viewModel.gridSize,
-                onSelect = viewModel::setGridSize,
+                onSelect = onSelectGridSize,
                 chipHeight = 40.dp,
                 onCard = false,
             )
@@ -241,54 +253,5 @@ private fun OverflowMenuButton(onClick: () -> Unit) {
             tint = colors.text,
             modifier = Modifier.size(20.dp),
         )
-    }
-}
-
-@Composable
-private fun NewGameConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    val colors = LocalOpenColors.current
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(colors.settingsCard)
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = "Start a new game?",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = colors.text,
-            )
-            Text(
-                text = "Your current progress will be lost.",
-                fontSize = 13.sp,
-                color = colors.secondary,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Spacer(Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(colors.controlTrack)
-                        .clickable(onClick = onDismiss),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "Cancel",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.chipUnselectedText,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                }
-                PrimaryButton("New Game", onConfirm, Modifier.height(44.dp))
-            }
-        }
     }
 }

@@ -20,6 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +40,7 @@ private const val GITHUB_URL = "https://github.com/tjcdeveloper/open-twenty-fort
 @Composable
 fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
     val colors = LocalOpenColors.current
+    var pendingGridSize by remember { mutableStateOf<Int?>(null) }
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -92,7 +97,13 @@ fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 GridSizeChips(
                     selected = viewModel.gridSize,
-                    onSelect = viewModel::setGridSize,
+                    onSelect = { size ->
+                        when {
+                            size == viewModel.gridSize -> Unit
+                            viewModel.hasProgressToLose -> pendingGridSize = size
+                            else -> viewModel.setGridSize(size)
+                        }
+                    },
                     chipHeight = 44.dp,
                     onCard = true,
                 )
@@ -122,6 +133,16 @@ fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
                 )
             }
         }
+    }
+
+    pendingGridSize?.let { size ->
+        ConfirmNewGameDialog(
+            onConfirm = {
+                pendingGridSize = null
+                viewModel.setGridSize(size)
+            },
+            onDismiss = { pendingGridSize = null },
+        )
     }
 }
 

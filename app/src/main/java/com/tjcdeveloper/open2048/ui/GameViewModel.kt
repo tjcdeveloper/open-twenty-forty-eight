@@ -41,6 +41,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val gridSize: Int get() = game.size
     val bestScore: Int get() = bestScores[game.size] ?: 0
     val isGameOver: Boolean get() = !GameEngine.canMove(game)
+    val hasProgressToLose: Boolean get() = game.score > 0 && !isGameOver
     val showWinOverlay: Boolean get() = GameEngine.hasWon(game) && !winAcknowledged
 
     init {

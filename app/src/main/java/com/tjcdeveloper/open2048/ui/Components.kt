@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.tjcdeveloper.open2048.ui.theme.LocalOpenColors
 import com.tjcdeveloper.open2048.ui.theme.ReplyIcon
 import java.util.Locale
@@ -188,6 +190,56 @@ fun SectionLabel(text: String) {
         letterSpacing = 1.sp,
         color = LocalOpenColors.current.secondary,
     )
+}
+
+/** Confirmation shown before any action that discards a game in progress. */
+@Composable
+fun ConfirmNewGameDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val colors = LocalOpenColors.current
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(colors.settingsCard)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Start a new game?",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.text,
+            )
+            Text(
+                text = "Your current progress will be lost.",
+                fontSize = 13.sp,
+                color = colors.secondary,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Spacer(Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(colors.controlTrack)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "Cancel",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.chipUnselectedText,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
+                }
+                PrimaryButton("New Game", onConfirm, Modifier.height(44.dp))
+            }
+        }
+    }
 }
 
 /** Fills a row with undo + redo buttons sized for the given height. */
