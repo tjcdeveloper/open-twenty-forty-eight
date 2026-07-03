@@ -118,7 +118,7 @@ fun UndoRedoButton(
             contentDescription = if (mirrored) "Redo" else "Undo",
             tint = if (enabled) colors.onPrimary else colors.disabledIcon,
             modifier = Modifier
-                .size(22.dp)
+                .size(28.dp)
                 .graphicsLayer { scaleX = if (mirrored) -1f else 1f },
         )
     }

@@ -45,7 +45,7 @@ Package root: `app/src/main/java/com/tjcdeveloper/open2048/`.
 
 Layout is driven by `WindowWidthSizeClass`, not device type: `Compact` → stacked cover-screen layout (controls above board), anything wider → board-left/rail-right unfolded layout with grid-size chips. `MainActivity` declares `configChanges` for size/uiMode so fold and theme transitions recompose live without recreation.
 
-Theming goes through `LocalOpenColors` (custom `CompositionLocal` in `ui/theme/Theme.kt`) with complete light and true-black dark palettes from the design handoff; MaterialTheme is only a thin wrapper for dialogs. Tile colors come from `tileColors(value, isDark)` — the dark theme overrides only values 2 and 4. Theme preference LIGHT/DARK/SYSTEM lives in settings; SYSTEM follows `isSystemInDarkTheme()`.
+Theming goes through `LocalOpenColors` (custom `CompositionLocal` in `ui/theme/Theme.kt`) with complete light and true-black dark palettes from the design handoff; MaterialTheme is only a thin wrapper for dialogs. Tile colors come from `tileColors(value, isDark)` — the dark theme uses a fully separate, dimmed ramp (same hues, lower brightness) so tiles aren't glaring on the black background. Theme preference LIGHT/DARK/SYSTEM lives in settings; SYSTEM follows `isSystemInDarkTheme()`.
 
 Icons are hand-built `ImageVector` paths in `ui/theme/Icons.kt` (the redo icon is the undo "reply" icon mirrored via `graphicsLayer.scaleX = -1`). No bitmap assets anywhere.
 

@@ -79,21 +79,38 @@ val DarkOpenColors = OpenColors(
 
 val LocalOpenColors = staticCompositionLocalOf { LightOpenColors }
 
-/** Classic 2048 tile ramp: background to text color, with dark-theme overrides for 2 and 4. */
-fun tileColors(value: Int, isDark: Boolean): Pair<Color, Color> = when {
-    value == 2 && isDark -> Color(0xFF3C3830) to Color(0xFFD6CDC1)
-    value == 4 && isDark -> Color(0xFF4A4336) to Color(0xFFE0D5C2)
-    value == 2 -> Color(0xFFEEE4DA) to Color(0xFF776E65)
-    value == 4 -> Color(0xFFEDE0C8) to Color(0xFF776E65)
-    value == 8 -> Color(0xFFF2B179) to Color(0xFFF9F6F2)
-    value == 16 -> Color(0xFFF59563) to Color(0xFFF9F6F2)
-    value == 32 -> Color(0xFFF67C5F) to Color(0xFFF9F6F2)
-    value == 64 -> Color(0xFFF65E3B) to Color(0xFFF9F6F2)
-    value == 128 -> Color(0xFFEDCF72) to Color(0xFFF9F6F2)
-    value == 256 -> Color(0xFFEDCC61) to Color(0xFFF9F6F2)
-    value == 512 -> Color(0xFFEDC850) to Color(0xFFF9F6F2)
-    value == 1024 -> Color(0xFFEDC53F) to Color(0xFFF9F6F2)
-    value == 2048 -> Color(0xFFEDC22E) to Color(0xFFF9F6F2)
+/** Classic 2048 tile ramp: background to text color. */
+fun tileColors(value: Int, isDark: Boolean): Pair<Color, Color> =
+    if (isDark) darkTileColors(value) else lightTileColors(value)
+
+private fun lightTileColors(value: Int): Pair<Color, Color> = when (value) {
+    2 -> Color(0xFFEEE4DA) to Color(0xFF776E65)
+    4 -> Color(0xFFEDE0C8) to Color(0xFF776E65)
+    8 -> Color(0xFFF2B179) to Color(0xFFF9F6F2)
+    16 -> Color(0xFFF59563) to Color(0xFFF9F6F2)
+    32 -> Color(0xFFF67C5F) to Color(0xFFF9F6F2)
+    64 -> Color(0xFFF65E3B) to Color(0xFFF9F6F2)
+    128 -> Color(0xFFEDCF72) to Color(0xFFF9F6F2)
+    256 -> Color(0xFFEDCC61) to Color(0xFFF9F6F2)
+    512 -> Color(0xFFEDC850) to Color(0xFFF9F6F2)
+    1024 -> Color(0xFFEDC53F) to Color(0xFFF9F6F2)
+    2048 -> Color(0xFFEDC22E) to Color(0xFFF9F6F2)
+    else -> Color(0xFF3C3A32) to Color(0xFFF9F6F2)
+}
+
+/** Same hues as the light ramp but dimmed for OLED dark so 4 -> 8 is not jarring. */
+private fun darkTileColors(value: Int): Pair<Color, Color> = when (value) {
+    2 -> Color(0xFF3C3830) to Color(0xFFD6CDC1)
+    4 -> Color(0xFF4A4336) to Color(0xFFE0D5C2)
+    8 -> Color(0xFFA06A3C) to Color(0xFFF9F6F2)
+    16 -> Color(0xFFA55A35) to Color(0xFFF9F6F2)
+    32 -> Color(0xFFA84A33) to Color(0xFFF9F6F2)
+    64 -> Color(0xFFA63A22) to Color(0xFFF9F6F2)
+    128 -> Color(0xFFA08A35) to Color(0xFFF9F6F2)
+    256 -> Color(0xFF9D852C) to Color(0xFFF9F6F2)
+    512 -> Color(0xFF9A8024) to Color(0xFFF9F6F2)
+    1024 -> Color(0xFF977B1C) to Color(0xFFF9F6F2)
+    2048 -> Color(0xFF947614) to Color(0xFFF9F6F2)
     else -> Color(0xFF3C3A32) to Color(0xFFF9F6F2)
 }
 

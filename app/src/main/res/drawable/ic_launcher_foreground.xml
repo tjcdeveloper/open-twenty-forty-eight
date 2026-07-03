@@ -4,20 +4,48 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 2x2 board motif inside the adaptive-icon safe zone -->
+    <!-- 2x2 board motif inside the adaptive-icon safe zone, tiles reading 2 / 0 / 4 / 8 -->
     <path
         android:fillColor="#F9F6F2"
-        android:pathData="M34,34 h16 a3,3 0 0 1 3,3 v16 a3,3 0 0 1 -3,3 h-16 a3,3 0 0 1 -3,-3 v-16 a3,3 0 0 1 3,-3 z" />
+        android:pathData="M35,32 h14 a3,3 0 0 1 3,3 v14 a3,3 0 0 1 -3,3 h-14 a3,3 0 0 1 -3,-3 v-14 a3,3 0 0 1 3,-3 z" />
     <path
         android:fillColor="#F9F6F2"
-        android:fillAlpha="0.8"
-        android:pathData="M58,34 h16 a3,3 0 0 1 3,3 v16 a3,3 0 0 1 -3,3 h-16 a3,3 0 0 1 -3,-3 v-16 a3,3 0 0 1 3,-3 z" />
+        android:fillAlpha="0.85"
+        android:pathData="M59,32 h14 a3,3 0 0 1 3,3 v14 a3,3 0 0 1 -3,3 h-14 a3,3 0 0 1 -3,-3 v-14 a3,3 0 0 1 3,-3 z" />
     <path
         android:fillColor="#F9F6F2"
-        android:fillAlpha="0.65"
-        android:pathData="M34,58 h16 a3,3 0 0 1 3,3 v16 a3,3 0 0 1 -3,3 h-16 a3,3 0 0 1 -3,-3 v-16 a3,3 0 0 1 3,-3 z" />
+        android:fillAlpha="0.85"
+        android:pathData="M35,56 h14 a3,3 0 0 1 3,3 v14 a3,3 0 0 1 -3,3 h-14 a3,3 0 0 1 -3,-3 v-14 a3,3 0 0 1 3,-3 z" />
     <path
         android:fillColor="#F9F6F2"
-        android:fillAlpha="0.5"
-        android:pathData="M58,58 h16 a3,3 0 0 1 3,3 v16 a3,3 0 0 1 -3,3 h-16 a3,3 0 0 1 -3,-3 v-16 a3,3 0 0 1 3,-3 z" />
+        android:fillAlpha="0.7"
+        android:pathData="M59,56 h14 a3,3 0 0 1 3,3 v14 a3,3 0 0 1 -3,3 h-14 a3,3 0 0 1 -3,-3 v-14 a3,3 0 0 1 3,-3 z" />
+    <!-- "2" -->
+    <path
+        android:strokeColor="#776E65"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M38.5,38 h7 v4 h-7 v4 h7" />
+    <!-- "0" -->
+    <path
+        android:strokeColor="#776E65"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M62,42 a4,4.5 0 1 0 8,0 a4,4.5 0 1 0 -8,0" />
+    <!-- "4" -->
+    <path
+        android:strokeColor="#776E65"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M39,61.5 v5 h6.5 M45.5,61 v10" />
+    <!-- "8" -->
+    <path
+        android:strokeColor="#776E65"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M63,63.5 a3,2.4 0 1 0 6,0 a3,2.4 0 1 0 -6,0 M62.5,68.8 a3.5,2.6 0 1 0 7,0 a3.5,2.6 0 1 0 -7,0" />
 </vector>
