@@ -107,21 +107,24 @@ private fun CompactGameLayout(
         }
 
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PrimaryButton("New Game", onNewGame, Modifier.height(44.dp))
+            Spacer(Modifier.weight(1f))
             UndoRedoButton(
                 mirrored = false,
                 enabled = viewModel.canUndo,
                 onClick = viewModel::undo,
-                modifier = Modifier.width(48.dp).height(44.dp),
+                modifier = Modifier.width(62.dp).height(57.dp),
             )
             UndoRedoButton(
                 mirrored = true,
                 enabled = viewModel.canRedo,
                 onClick = viewModel::redo,
-                modifier = Modifier.width(48.dp).height(44.dp),
+                modifier = Modifier.width(62.dp).height(57.dp),
             )
-            Spacer(Modifier.weight(1f))
-            PrimaryButton("New Game", onNewGame, Modifier.height(44.dp))
         }
 
         BoardArea(
@@ -165,7 +168,7 @@ private fun ExpandedGameLayout(
                 maxBoard = EXPANDED_BOARD_MAX,
                 gap = 12.dp,
                 cornerRadius = 10.dp,
-                modifier = Modifier.weight(1f, fill = false).fillMaxWidth(),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
             )
             Spacer(Modifier.height(16.dp))
             Text(
@@ -191,16 +194,16 @@ private fun ExpandedGameLayout(
             }
             ScoreCard("SCORE", viewModel.game.score, 28.sp, 12.dp, Modifier.fillMaxWidth())
             ScoreCard("BEST", viewModel.bestScore, 28.sp, 12.dp, Modifier.fillMaxWidth())
+            PrimaryButton("New Game", onNewGame, Modifier.fillMaxWidth().height(48.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 UndoRedoPair(
                     canUndo = viewModel.canUndo,
                     canRedo = viewModel.canRedo,
                     onUndo = viewModel::undo,
                     onRedo = viewModel::redo,
-                    height = 48.dp,
+                    height = 62.dp,
                 )
             }
-            PrimaryButton("New Game", onNewGame, Modifier.fillMaxWidth().height(48.dp))
             Spacer(Modifier.height(4.dp))
             SectionLabel("GRID SIZE")
             GridSizeChips(
@@ -221,7 +224,10 @@ private fun BoardArea(
     cornerRadius: Dp,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+    BoxWithConstraints(
+        modifier = modifier.swipeInput(onSwipe = viewModel::move),
+        contentAlignment = Alignment.Center,
+    ) {
         val boardSize = minOf(maxWidth, maxHeight, maxBoard)
         GameBoard(
             game = viewModel.game,
@@ -230,7 +236,6 @@ private fun BoardArea(
             cornerRadius = cornerRadius,
             isGameOver = viewModel.isGameOver,
             showWin = viewModel.showWinOverlay,
-            onSwipe = viewModel::move,
             onTryAgain = viewModel::newGame,
             onKeepGoing = viewModel::acknowledgeWin,
         )

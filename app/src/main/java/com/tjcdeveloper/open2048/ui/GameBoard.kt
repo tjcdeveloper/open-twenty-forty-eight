@@ -44,6 +44,18 @@ private const val SLIDE_MILLIS = 100
 private const val POP_MILLIS = 150
 private const val SWIPE_THRESHOLD_PX = 50f
 
+/** Swipe detection for board moves. Apply to the board or any region surrounding it. */
+fun Modifier.swipeInput(onSwipe: (Direction) -> Unit): Modifier = pointerInput(Unit) {
+    var drag = Offset.Zero
+    detectDragGestures(
+        onDragStart = { drag = Offset.Zero },
+        onDragEnd = { swipeDirection(drag)?.let(onSwipe) },
+    ) { change, amount ->
+        change.consume()
+        drag += amount
+    }
+}
+
 @Composable
 fun GameBoard(
     game: GameState,
@@ -52,7 +64,6 @@ fun GameBoard(
     cornerRadius: Dp,
     isGameOver: Boolean,
     showWin: Boolean,
-    onSwipe: (Direction) -> Unit,
     onTryAgain: () -> Unit,
     onKeepGoing: () -> Unit,
     modifier: Modifier = Modifier,
@@ -65,17 +76,7 @@ fun GameBoard(
         modifier = modifier
             .size(boardSize)
             .clip(RoundedCornerShape(cornerRadius))
-            .background(colors.boardContainer)
-            .pointerInput(Unit) {
-                var drag = Offset.Zero
-                detectDragGestures(
-                    onDragStart = { drag = Offset.Zero },
-                    onDragEnd = { swipeDirection(drag)?.let(onSwipe) },
-                ) { change, amount ->
-                    change.consume()
-                    drag += amount
-                }
-            },
+            .background(colors.boardContainer),
     ) {
         for (row in 0 until n) {
             for (col in 0 until n) {
