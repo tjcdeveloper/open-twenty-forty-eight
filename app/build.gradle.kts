@@ -17,7 +17,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.tjcdeveloper.open2048"
+        applicationId = "uk.co.tjcdeveloper.opentwentyfortyeight"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
