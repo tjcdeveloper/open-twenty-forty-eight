@@ -40,15 +40,14 @@ The complete source code is available on GitHub. Contributions, bug reports,
 and suggestions are welcome:
 https://github.com/tjcdeveloper/open-twenty-forty-eight
 
-## Release notes (per release, 500 chars max per language)
+## Release notes (per release)
 
-Condense the matching CHANGELOG.md entry. For 1.0.0:
+Play release notes are brief one-or-two-line summaries; the detailed log
+stays in CHANGELOG.md and is not published to the store. For 1.0.0:
 
 ```
 <en-GB>
-Initial release: classic 2048 with 4x4, 5x5 and 6x6 boards, undo/redo,
-automatic game saving, light and true-black dark themes, and adaptive
-layouts for foldables.
+Initial release.
 </en-GB>
 ```
 
