@@ -6,7 +6,12 @@ Open Twenty Forty-Eight
 
 ## Short description (80 chars max)
 
-Free, open-source 2048. No ads, no purchases, no tracking. Built for foldables.
+Merge tiles to reach 2048 in an open source puzzle, works with foldables
+
+(72 characters. Follows the short-description guidelines: describes the core
+function and unique aspects only; no price or promotional language such as
+"free" or "no ads"; no call to action; no special characters or emphasis
+capitalization; single sentence, so no trailing period.)
 
 ## Full description (4000 chars max)
 
