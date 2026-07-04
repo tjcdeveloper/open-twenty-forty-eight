@@ -2,7 +2,7 @@
 
 _Last updated: 3 July 2026_
 
-Open Twenty Forty-Eight is a free, open-source game published by tjcdeveloper.
+Open Twenty Forty-Eight is a free, open-source game published by TJCDeveloper.
 
 ## Data collection
 
