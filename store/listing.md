@@ -43,7 +43,16 @@ https://github.com/tjcdeveloper/open-twenty-forty-eight
 ## Release notes (per release)
 
 Play release notes are brief one-or-two-line summaries; the detailed log
-stays in CHANGELOG.md and is not published to the store. For 1.0.0:
+stays in CHANGELOG.md and is not published to the store. For 1.0.1 (not yet
+released):
+
+```
+<en-GB>
+Press back twice to exit, so a stray back press no longer closes the game.
+</en-GB>
+```
+
+For 1.0.0:
 
 ```
 <en-GB>

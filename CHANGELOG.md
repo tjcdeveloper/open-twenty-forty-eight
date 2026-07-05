@@ -7,6 +7,14 @@ and version numbers follow [Semantic Versioning](https://semver.org/spec/v2.0.0.
 Each released version matches a Play Store release; the Play release notes are
 a condensed form of the entry here.
 
+## [1.0.1] - Unreleased
+
+### Added
+
+- Press back twice to exit: a first back press on the game screen shows a
+  "Press back again to exit" message in the centre of the screen that fades
+  after 3 seconds; a second press within 5 seconds closes the app
+
 ## [1.0.0] - 2026-07-04
 
 Initial release.
