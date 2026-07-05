@@ -15,6 +15,7 @@ val keystoreProperties = Properties().apply {
 android {
     namespace = "com.tjcdeveloper.open2048"
     compileSdk = 36
+    ndkVersion = "30.0.14904198"
 
     defaultConfig {
         applicationId = "uk.co.tjcdeveloper.opentwentyfortyeight"
@@ -44,6 +45,9 @@ android {
                 "proguard-rules.pro",
             )
             signingConfig = signingConfigs.findByName("release")
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
     compileOptions {
