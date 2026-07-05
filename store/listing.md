@@ -48,14 +48,10 @@ released):
 
 ```
 <en-GB>
+[1.0.1] - TBC
 Press back twice to exit, so a stray back press no longer closes the game.
-</en-GB>
-```
 
-For 1.0.0:
-
-```
-<en-GB>
+[1.0.0] - 2026-07-04
 Initial release.
 </en-GB>
 ```
