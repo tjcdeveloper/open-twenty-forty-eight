@@ -32,8 +32,13 @@ object GameEngine {
 
     const val WINNING_VALUE = 2048
 
-    fun newGame(size: Int, rng: Random = Random.Default): GameState {
-        var state = GameState(size = size, tiles = emptyList(), score = 0, nextId = 1L)
+    /**
+     * [idStart] lets callers keep ids monotonic across games: Compose keys tiles by id,
+     * so a new game reusing an id still on the outgoing board would recycle that tile's
+     * composition and glide it across the board instead of playing the spawn pop.
+     */
+    fun newGame(size: Int, rng: Random = Random.Default, idStart: Long = 1L): GameState {
+        var state = GameState(size = size, tiles = emptyList(), score = 0, nextId = idStart)
         repeat(2) { state = spawnTile(state, rng) }
         return state
     }

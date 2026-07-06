@@ -2,6 +2,8 @@ package com.tjcdeveloper.open2048.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,15 +24,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tjcdeveloper.open2048.BuildConfig
 import com.tjcdeveloper.open2048.data.ThemePreference
 import com.tjcdeveloper.open2048.ui.theme.ArrowBackIcon
 import com.tjcdeveloper.open2048.ui.theme.LocalOpenColors
@@ -40,7 +44,7 @@ private const val GITHUB_URL = "https://github.com/tjcdeveloper/open-twenty-fort
 @Composable
 fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
     val colors = LocalOpenColors.current
-    var pendingGridSize by remember { mutableStateOf<Int?>(null) }
+    var pendingGridSize by rememberSaveable { mutableStateOf<Int?>(null) }
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -53,9 +57,9 @@ fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .clickable(onClick = onBack),
+                        .clickable(role = Role.Button, onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -104,7 +108,7 @@ fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
                             else -> viewModel.setGridSize(size)
                         }
                     },
-                    chipHeight = 44.dp,
+                    chipHeight = 48.dp,
                     onCard = true,
                 )
             }
@@ -112,7 +116,7 @@ fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
             SettingsSection("ABOUT") {
                 val uriHandler = LocalUriHandler.current
                 Text(
-                    text = "Open Twenty Forty-Eight · v1.0.0",
+                    text = "Open Twenty Forty-Eight · v${BuildConfig.VERSION_NAME}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.text,
@@ -129,7 +133,10 @@ fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.link,
-                    modifier = Modifier.clickable { uriHandler.openUri(GITHUB_URL) },
+                    modifier = Modifier.clickable(role = Role.Button) {
+                        // No browser available (e.g. disabled by policy) must not crash.
+                        runCatching { uriHandler.openUri(GITHUB_URL) }
+                    },
                 )
             }
         }
@@ -172,7 +179,8 @@ private fun ThemeSegmentedControl(selected: ThemePreference, onSelect: (ThemePre
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(colors.controlTrack)
-            .padding(4.dp),
+            .padding(4.dp)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         listOf(
@@ -184,10 +192,10 @@ private fun ThemeSegmentedControl(selected: ThemePreference, onSelect: (ThemePre
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(40.dp)
+                    .height(48.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .background(if (isSelected) colors.primaryButton else colors.controlTrack)
-                    .clickable { onSelect(preference) },
+                    .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(preference) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

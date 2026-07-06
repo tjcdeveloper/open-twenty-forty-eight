@@ -2,6 +2,8 @@ package com.tjcdeveloper.open2048.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -73,10 +79,23 @@ fun Wordmark(nameFontSize: TextUnit, twoLines: Boolean) {
 }
 
 @Composable
-fun ScoreCard(label: String, value: Int, valueFontSize: TextUnit, verticalPadding: Dp, modifier: Modifier = Modifier) {
+fun ScoreCard(
+    label: String,
+    value: Int,
+    valueFontSize: TextUnit,
+    verticalPadding: Dp,
+    modifier: Modifier = Modifier,
+    announceChanges: Boolean = false,
+) {
     val colors = LocalOpenColors.current
     Column(
         modifier = modifier
+            // Read as one announcement ("SCORE, 1,024") instead of two stops. The live
+            // region on the score gives TalkBack users per-move feedback for a game
+            // whose only visible response to a move is on screen.
+            .semantics(mergeDescendants = true) {
+                if (announceChanges) liveRegion = LiveRegionMode.Polite
+            }
             .clip(RoundedCornerShape(6.dp))
             .background(colors.scoreCard)
             .padding(vertical = verticalPadding),
@@ -110,7 +129,7 @@ fun UndoRedoButton(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
             .background(if (enabled) colors.primaryButton else colors.disabledButton)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -131,7 +150,7 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
             .background(colors.primaryButton)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -153,7 +172,10 @@ fun GridSizeChips(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalOpenColors.current
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(
+        modifier = modifier.fillMaxWidth().selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         listOf(4, 5, 6).forEach { size ->
             val isSelected = size == selected
             val background = when {
@@ -167,7 +189,7 @@ fun GridSizeChips(
                     .height(chipHeight)
                     .clip(RoundedCornerShape(6.dp))
                     .background(background)
-                    .clickable { onSelect(size) },
+                    .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(size) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -222,10 +244,10 @@ fun ConfirmNewGameDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
                 Spacer(Modifier.weight(1f))
                 Box(
                     modifier = Modifier
-                        .height(44.dp)
+                        .height(48.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(colors.controlTrack)
-                        .clickable(onClick = onDismiss),
+                        .clickable(role = Role.Button, onClick = onDismiss),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -236,7 +258,7 @@ fun ConfirmNewGameDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
                         modifier = Modifier.padding(horizontal = 20.dp),
                     )
                 }
-                PrimaryButton("New Game", onConfirm, Modifier.height(44.dp))
+                PrimaryButton("New Game", onConfirm, Modifier.height(48.dp))
             }
         }
     }

@@ -14,6 +14,30 @@ a condensed form of the entry here.
 - Press back twice to exit: a first back press on the game screen shows a
   "Press back again to exit" message in the centre of the screen that fades
   after 3 seconds; a second press within 5 seconds closes the app
+- TalkBack support: tiles announce their value and position, the four moves
+  are available as accessibility actions on the board, game over / win and
+  the exit prompt are announced, and controls expose proper roles and
+  selection states
+
+### Changed
+
+- Saved data (game in progress, best scores, settings) is excluded from
+  Android cloud backup and device transfer, matching the privacy policy's
+  promise that no data ever leaves the device
+- After the system splash screen, the app now starts directly in the saved
+  theme instead of flashing the light palette before dark mode loads
+
+### Fixed
+
+- A corrupted or unreadable data file no longer crashes the app on launch;
+  it recovers with a fresh game and default settings
+- Moves made in the final moments before exiting could be lost; saves now
+  always complete
+- Navigating to and from Settings no longer counts toward the double back
+  press that exits the app
+- Tile numbers no longer clip at large system font sizes
+- Opening the GitHub link no longer crashes on devices without a browser
+- The Settings screen showed a hardcoded version number
 
 ## [1.0.0] - 2026-07-04
 

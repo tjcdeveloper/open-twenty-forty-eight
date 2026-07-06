@@ -6,14 +6,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.tjcdeveloper.open2048.data.GameRepository
 import com.tjcdeveloper.open2048.data.GameStateCodec
 import com.tjcdeveloper.open2048.data.SavedData
+import com.tjcdeveloper.open2048.data.SavedGameDecoder
 import com.tjcdeveloper.open2048.data.ThemePreference
 import com.tjcdeveloper.open2048.game.Direction
 import com.tjcdeveloper.open2048.game.GameEngine
 import com.tjcdeveloper.open2048.game.GameState
 import com.tjcdeveloper.open2048.game.MoveHistory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 const val MAX_UNDO_HISTORY = 6
@@ -22,6 +28,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = GameRepository(application)
     private val history = MoveHistory<GameState>(MAX_UNDO_HISTORY)
+
+    // Saves must outlive the ViewModel: DataStore runs a queued write's transform on the
+    // caller's Job, so a save launched in viewModelScope just before the activity finishes
+    // would be cancelled and silently dropped, losing the last move or a new best score.
+    // Parallelism 1 keeps saves FIFO in user-action order — on the unbounded IO pool two
+    // saves could race and persist an older snapshot over a newer one.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val saveScope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
 
     var isLoaded by mutableStateOf(false)
         private set
@@ -38,6 +52,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var winAcknowledged by mutableStateOf(false)
         private set
 
+    // False after a degraded (failed-read) load: the in-memory defaults are not the
+    // user's real data, and persisting them would permanently overwrite the good save.
+    private var persistAllowed = true
+
     val gridSize: Int get() = game.size
     val bestScore: Int get() = bestScores[game.size] ?: 0
     val isGameOver: Boolean get() = !GameEngine.canMove(game)
@@ -50,21 +68,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             theme = saved.theme
             bestScores = saved.bestScores
             winAcknowledged = saved.winAcknowledged
+            persistAllowed = !saved.degraded
 
-            // Decode with non-overlapping id ranges so tile keys stay unique across states.
-            var idBase = 1L
-            fun decode(encoded: String): GameState? {
-                val state = GameStateCodec.decode(encoded, idBase) ?: return null
-                idBase = state.nextId
-                return state
-            }
-
-            val undo = saved.undoEncoded.mapNotNull(::decode)
-            val redo = saved.redoEncoded.mapNotNull(::decode)
-            val savedGame = saved.gameEncoded?.let(::decode)
-            if (savedGame != null && savedGame.size == saved.gridSize) {
-                game = savedGame
-                history.restore(undo.filter { it.size == game.size }, redo.filter { it.size == game.size })
+            val decoded = SavedGameDecoder.decode(saved)
+            if (decoded.game != null) {
+                game = decoded.game
+                history.restore(decoded.undo, decoded.redo)
             } else {
                 game = GameEngine.newGame(saved.gridSize)
             }
@@ -73,14 +82,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun move(direction: Direction) {
-        if (showWinOverlay) return
-        val next = GameEngine.move(game, direction) ?: return
+    /** Applies a move; returns false when it changed nothing (blocked or win overlay up). */
+    fun move(direction: Direction): Boolean {
+        if (showWinOverlay) return false
+        val next = GameEngine.move(game, direction) ?: return false
         history.record(game)
         game = next
         updateBestScore()
         syncHistoryFlags()
         persist()
+        return true
     }
 
     fun undo() {
@@ -99,7 +110,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun newGame() {
         history.clear()
         winAcknowledged = false
-        game = GameEngine.newGame(gridSize)
+        game = GameEngine.newGame(gridSize, idStart = game.nextId)
         syncHistoryFlags()
         persist()
     }
@@ -108,7 +119,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (size == gridSize) return
         history.clear()
         winAcknowledged = false
-        game = GameEngine.newGame(size)
+        game = GameEngine.newGame(size, idStart = game.nextId)
         syncHistoryFlags()
         persist()
     }
@@ -134,6 +145,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun persist() {
+        if (!persistAllowed) {
+            Log.w("GameViewModel", "Skipping save: loaded data was degraded; not overwriting the stored game")
+            return
+        }
         val snapshot = SavedData(
             theme = theme,
             gridSize = gridSize,
@@ -143,6 +158,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             redoEncoded = history.redoSnapshot().map(GameStateCodec::encode),
             winAcknowledged = winAcknowledged,
         )
-        viewModelScope.launch { repository.save(snapshot) }
+        saveScope.launch { repository.save(snapshot) }
     }
 }

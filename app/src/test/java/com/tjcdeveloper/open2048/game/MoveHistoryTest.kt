@@ -73,6 +73,22 @@ class MoveHistoryTest {
     }
 
     @Test
+    fun `redo enforces the undo cap after an over-sized restore`() {
+        val history = MoveHistory<Int>(6)
+        history.restore(undo = (1..6).toList(), redo = (7..12).toList())
+        var current = 13
+        while (history.canRedo) current = history.redo(current)!!
+
+        val undone = mutableListOf<Int>()
+        while (history.canUndo) {
+            val previous = history.undo(current)!!
+            undone += previous
+            current = previous
+        }
+        assertEquals(6, undone.size)
+    }
+
+    @Test
     fun `full undo redo cycle keeps stacks within cap`() {
         val history = MoveHistory<Int>(6)
         (1..8).forEach(history::record)

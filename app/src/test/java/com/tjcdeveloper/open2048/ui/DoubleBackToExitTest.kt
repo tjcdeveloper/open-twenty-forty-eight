@@ -42,6 +42,14 @@ class DoubleBackToExitTest {
     }
 
     @Test
+    fun `reset disarms the window`() {
+        val tracker = DoubleBackToExit(windowMillis = 5_000L)
+        tracker.onBackPressed(nowMillis = 0L)
+        tracker.reset()
+        assertFalse(tracker.onBackPressed(nowMillis = 1_000L))
+    }
+
+    @Test
     fun `expired presses never accumulate into an exit`() {
         val tracker = DoubleBackToExit(windowMillis = 5_000L)
         assertFalse(tracker.onBackPressed(nowMillis = 0L))

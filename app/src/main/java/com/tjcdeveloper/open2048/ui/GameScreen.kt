@@ -23,12 +23,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,14 +46,16 @@ import com.tjcdeveloper.open2048.ui.theme.MoreVertIcon
 private val COMPACT_BOARD_MAX = 362.dp
 private val EXPANDED_BOARD_MAX = 508.dp
 
+private data class BoardSpec(val maxBoard: Dp, val gap: Dp, val cornerRadius: Dp)
+
 @Composable
 fun GameScreen(
     viewModel: GameViewModel,
     widthSizeClass: WindowWidthSizeClass,
     onOpenSettings: () -> Unit,
 ) {
-    var confirmNewGame by remember { mutableStateOf(false) }
-    var pendingGridSize by remember { mutableStateOf<Int?>(null) }
+    var confirmNewGame by rememberSaveable { mutableStateOf(false) }
+    var pendingGridSize by rememberSaveable { mutableStateOf<Int?>(null) }
     val requestNewGame = {
         if (viewModel.hasProgressToLose) confirmNewGame = true else viewModel.newGame()
     }
@@ -58,10 +67,19 @@ fun GameScreen(
         }
     }
 
+    // movableContentOf keeps the board's composition (tile animation state) alive when
+    // fold/unfold swaps between the two layouts; recreating it would replay the last
+    // spawn/merge animations on every posture change.
+    val boardArea = remember(viewModel) {
+        movableContentOf { spec: BoardSpec, modifier: Modifier ->
+            BoardArea(viewModel, spec, modifier)
+        }
+    }
+
     if (widthSizeClass == WindowWidthSizeClass.Compact) {
-        CompactGameLayout(viewModel, requestNewGame, onOpenSettings)
+        CompactGameLayout(viewModel, requestNewGame, onOpenSettings, boardArea)
     } else {
-        ExpandedGameLayout(viewModel, requestNewGame, requestGridSize, onOpenSettings)
+        ExpandedGameLayout(viewModel, requestNewGame, requestGridSize, onOpenSettings, boardArea)
     }
 
     if (confirmNewGame) {
@@ -89,6 +107,7 @@ private fun CompactGameLayout(
     viewModel: GameViewModel,
     onNewGame: () -> Unit,
     onOpenSettings: () -> Unit,
+    boardArea: @Composable (BoardSpec, Modifier) -> Unit,
 ) {
     val colors = LocalOpenColors.current
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -102,7 +121,7 @@ private fun CompactGameLayout(
 
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ScoreCard("SCORE", viewModel.game.score, 20.sp, 7.dp, Modifier.weight(1f))
+            ScoreCard("SCORE", viewModel.game.score, 20.sp, 7.dp, Modifier.weight(1f), announceChanges = true)
             ScoreCard("BEST", viewModel.bestScore, 20.sp, 7.dp, Modifier.weight(1f))
         }
 
@@ -111,7 +130,7 @@ private fun CompactGameLayout(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PrimaryButton("New Game", onNewGame, Modifier.height(44.dp))
+            PrimaryButton("New Game", onNewGame, Modifier.height(48.dp))
             Spacer(Modifier.weight(1f))
             UndoRedoButton(
                 mirrored = false,
@@ -127,12 +146,9 @@ private fun CompactGameLayout(
             )
         }
 
-        BoardArea(
-            viewModel = viewModel,
-            maxBoard = COMPACT_BOARD_MAX,
-            gap = 10.dp,
-            cornerRadius = 8.dp,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+        boardArea(
+            BoardSpec(maxBoard = COMPACT_BOARD_MAX, gap = 10.dp, cornerRadius = 8.dp),
+            Modifier.weight(1f).fillMaxWidth(),
         )
 
         Text(
@@ -152,6 +168,7 @@ private fun ExpandedGameLayout(
     onNewGame: () -> Unit,
     onSelectGridSize: (Int) -> Unit,
     onOpenSettings: () -> Unit,
+    boardArea: @Composable (BoardSpec, Modifier) -> Unit,
 ) {
     val colors = LocalOpenColors.current
     Row(
@@ -163,12 +180,9 @@ private fun ExpandedGameLayout(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            BoardArea(
-                viewModel = viewModel,
-                maxBoard = EXPANDED_BOARD_MAX,
-                gap = 12.dp,
-                cornerRadius = 10.dp,
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+            boardArea(
+                BoardSpec(maxBoard = EXPANDED_BOARD_MAX, gap = 12.dp, cornerRadius = 10.dp),
+                Modifier.weight(1f).fillMaxWidth(),
             )
             Spacer(Modifier.height(16.dp))
             Text(
@@ -192,7 +206,7 @@ private fun ExpandedGameLayout(
                 Spacer(Modifier.weight(1f))
                 OverflowMenuButton(onOpenSettings)
             }
-            ScoreCard("SCORE", viewModel.game.score, 28.sp, 12.dp, Modifier.fillMaxWidth())
+            ScoreCard("SCORE", viewModel.game.score, 28.sp, 12.dp, Modifier.fillMaxWidth(), announceChanges = true)
             ScoreCard("BEST", viewModel.bestScore, 28.sp, 12.dp, Modifier.fillMaxWidth())
             PrimaryButton("New Game", onNewGame, Modifier.fillMaxWidth().height(48.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -209,7 +223,7 @@ private fun ExpandedGameLayout(
             GridSizeChips(
                 selected = viewModel.gridSize,
                 onSelect = onSelectGridSize,
-                chipHeight = 40.dp,
+                chipHeight = 48.dp,
                 onCard = false,
             )
         }
@@ -219,21 +233,38 @@ private fun ExpandedGameLayout(
 @Composable
 private fun BoardArea(
     viewModel: GameViewModel,
-    maxBoard: Dp,
-    gap: Dp,
-    cornerRadius: Dp,
+    spec: BoardSpec,
     modifier: Modifier = Modifier,
 ) {
+    val overlayShown = viewModel.isGameOver || viewModel.showWinOverlay
+    // Swipe is the only pointer input, so expose the four moves as accessibility
+    // actions — without them the game cannot be played with TalkBack. They return
+    // the real outcome so an ineffective move is distinguishable, and disappear
+    // while an overlay makes the board inert.
+    val moveActions = if (overlayShown) {
+        emptyList()
+    } else {
+        Direction.entries.map { direction ->
+            CustomAccessibilityAction("Move ${direction.name.lowercase()}") {
+                viewModel.move(direction)
+            }
+        }
+    }
     BoxWithConstraints(
-        modifier = modifier.swipeInput(onSwipe = viewModel::move),
+        modifier = modifier
+            .swipeInput(onSwipe = { viewModel.move(it) })
+            .semantics {
+                contentDescription = "${viewModel.gridSize} by ${viewModel.gridSize} game board"
+                customActions = moveActions
+            },
         contentAlignment = Alignment.Center,
     ) {
-        val boardSize = minOf(maxWidth, maxHeight, maxBoard)
+        val boardSize = minOf(maxWidth, maxHeight, spec.maxBoard)
         GameBoard(
             game = viewModel.game,
             boardSize = boardSize,
-            gap = gap,
-            cornerRadius = cornerRadius,
+            gap = spec.gap,
+            cornerRadius = spec.cornerRadius,
             isGameOver = viewModel.isGameOver,
             showWin = viewModel.showWinOverlay,
             onTryAgain = viewModel::newGame,
@@ -247,9 +278,9 @@ private fun OverflowMenuButton(onClick: () -> Unit) {
     val colors = LocalOpenColors.current
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

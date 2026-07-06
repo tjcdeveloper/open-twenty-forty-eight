@@ -26,6 +26,7 @@ class MoveHistory<T>(private val maxSize: Int = 6) {
     fun redo(current: T): T? {
         if (redoStack.isEmpty()) return null
         undoStack.addLast(current)
+        while (undoStack.size > maxSize) undoStack.removeFirst()
         return redoStack.removeLast()
     }
 

@@ -1,5 +1,7 @@
 package com.tjcdeveloper.open2048
 
+import android.content.res.Configuration
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -34,11 +36,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tjcdeveloper.open2048.data.GameRepository
 import com.tjcdeveloper.open2048.data.ThemePreference
 import com.tjcdeveloper.open2048.ui.DoubleBackToExit
 import com.tjcdeveloper.open2048.ui.GameScreen
@@ -54,28 +60,45 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // One blocking read of the tiny preferences file so the window background and
+        // first frames match the saved theme instead of flashing the light palette
+        // while the async ViewModel load is still in flight.
+        val initialTheme = GameRepository(applicationContext).loadThemeBlocking()
+        window.setBackgroundDrawable(ColorDrawable(if (resolveDark(initialTheme)) 0xFF000000.toInt() else 0xFFFAF8EF.toInt()))
         setContent {
             val viewModel: GameViewModel = viewModel()
-            val darkTheme = when (viewModel.theme) {
+            val preference = if (viewModel.isLoaded) viewModel.theme else initialTheme
+            val darkTheme = when (preference) {
                 ThemePreference.LIGHT -> false
                 ThemePreference.DARK -> true
                 ThemePreference.SYSTEM -> isSystemInDarkTheme()
             }
             Open2048Theme(darkTheme = darkTheme) {
-                StatusBarStyle(darkTheme)
+                WindowChrome(darkTheme)
                 val widthSizeClass = calculateWindowSizeClass(this).widthSizeClass
                 AppContent(viewModel = viewModel, widthSizeClass = widthSizeClass)
             }
         }
     }
 
+    private fun resolveDark(preference: ThemePreference): Boolean = when (preference) {
+        ThemePreference.LIGHT -> false
+        ThemePreference.DARK -> true
+        ThemePreference.SYSTEM ->
+            resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+    }
+
     @Composable
-    private fun StatusBarStyle(darkTheme: Boolean) {
+    private fun WindowChrome(darkTheme: Boolean) {
         val view = LocalView.current
         SideEffect {
             val controller = WindowCompat.getInsetsController(window, view)
             controller.isAppearanceLightStatusBars = !darkTheme
             controller.isAppearanceLightNavigationBars = !darkTheme
+            // configChanges handles uiMode and fold resizes without recreation, so the
+            // drawable set in onCreate would go stale after a live theme switch and
+            // flash the old colour in newly exposed areas during a fold/unfold resize.
+            window.setBackgroundDrawable(ColorDrawable(if (darkTheme) 0xFF000000.toInt() else 0xFFFAF8EF.toInt()))
         }
     }
 }
@@ -96,6 +119,13 @@ private fun AppContent(
         if (exitPromptCount == 0) return@LaunchedEffect
         exitPromptVisible = true
         delay(3_000L)
+        exitPromptVisible = false
+    }
+
+    // Navigating to or from Settings disarms the exit window, so back presses that were
+    // navigation can never count toward the double press that closes the app.
+    LaunchedEffect(showSettings) {
+        doubleBackToExit.reset()
         exitPromptVisible = false
     }
 
@@ -146,6 +176,9 @@ private fun ExitPrompt(visible: Boolean, modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
             color = colors.onPrimary,
             modifier = Modifier
+                // Announce the warning to screen readers; without it TalkBack users
+                // would get no feedback before the second press closes the app.
+                .semantics { liveRegion = LiveRegionMode.Polite }
                 .clip(RoundedCornerShape(24.dp))
                 .background(colors.primaryButton)
                 .padding(horizontal = 20.dp, vertical = 12.dp),

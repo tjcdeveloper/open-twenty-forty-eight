@@ -15,7 +15,6 @@ val keystoreProperties = Properties().apply {
 android {
     namespace = "com.tjcdeveloper.open2048"
     compileSdk = 36
-    ndkVersion = "30.0.14904198"
 
     defaultConfig {
         applicationId = "uk.co.tjcdeveloper.opentwentyfortyeight"
@@ -45,9 +44,10 @@ android {
                 "proguard-rules.pro",
             )
             signingConfig = signingConfigs.findByName("release")
-            ndk {
-                debugSymbolLevel = "SYMBOL_TABLE"
-            }
+            // No debugSymbolLevel: the only native libs are pre-stripped AndroidX AARs,
+            // so symbol extraction emits nothing while forcing an NDK download on every
+            // machine that builds a release. The Play "no debug symbols" warning is
+            // unavoidable for upstream-stripped libraries.
         }
     }
     compileOptions {
@@ -59,6 +59,20 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+}
+
+// An absent keystore.properties silently yields an UNSIGNED release that Play rejects;
+// make that visible at build time instead of at upload time.
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+    doFirst {
+        if (keystoreProperties.isEmpty) {
+            logger.warn(
+                "WARNING: keystore.properties not found — this release build is UNSIGNED " +
+                    "and cannot be uploaded to Google Play.",
+            )
+        }
     }
 }
 

@@ -16,4 +16,9 @@ class DoubleBackToExit(private val windowMillis: Long = 5_000L) {
         armedAtMillis = nowMillis
         return false
     }
+
+    /** Disarms the window, e.g. when the user navigates away from the root screen. */
+    fun reset() {
+        armedAtMillis = null
+    }
 }

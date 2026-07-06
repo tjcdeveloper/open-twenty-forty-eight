@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -28,8 +29,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tjcdeveloper.open2048.game.Direction
@@ -72,37 +81,49 @@ fun GameBoard(
     val n = game.size
     val cell = (boardSize - gap * (n + 1)) / n
 
-    Box(
-        modifier = modifier
-            .size(boardSize)
-            .clip(RoundedCornerShape(cornerRadius))
-            .background(colors.boardContainer),
-    ) {
-        for (row in 0 until n) {
-            for (col in 0 until n) {
-                Box(
-                    modifier = Modifier
-                        .offset(x = gap + (cell + gap) * col, y = gap + (cell + gap) * row)
-                        .size(cell)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(colors.emptyCell),
+    // The board is positioned with layout-direction-aware offsets, but swipe deltas and
+    // engine columns are absolute — under RTL the grid would mirror and horizontal
+    // swipes would move tiles opposite to the finger. Pin the board itself to LTR
+    // (a number grid has no reading direction).
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Box(
+            modifier = modifier
+                .size(boardSize)
+                .clip(RoundedCornerShape(cornerRadius))
+                .background(colors.boardContainer),
+        ) {
+            val overlayShown = isGameOver || showWin
+            // The board under an overlay is inert; hide it from TalkBack so focus
+            // cannot wander over dead tiles behind the scrim.
+            val boardSemantics = if (overlayShown) Modifier.clearAndSetSemantics {} else Modifier
+            Box(modifier = Modifier.fillMaxSize().then(boardSemantics)) {
+                for (row in 0 until n) {
+                    for (col in 0 until n) {
+                        Box(
+                            modifier = Modifier
+                                .offset(x = gap + (cell + gap) * col, y = gap + (cell + gap) * row)
+                                .size(cell)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(colors.emptyCell),
+                        )
+                    }
+                }
+
+                // Consumed tiles first so merge survivors render above them.
+                game.tiles.sortedBy { if (it.consumed) 0 else 1 }.forEach { tile ->
+                    key(tile.id) { TileView(tile = tile, cell = cell, gap = gap) }
+                }
+            }
+
+            if (overlayShown) {
+                BoardOverlay(
+                    title = if (showWin) "You win!" else "Game over!",
+                    primaryLabel = if (showWin) "Keep going" else "Try again",
+                    onPrimary = if (showWin) onKeepGoing else onTryAgain,
+                    secondaryLabel = if (showWin) "New Game" else null,
+                    onSecondary = onTryAgain,
                 )
             }
-        }
-
-        // Consumed tiles first so merge survivors render above them.
-        game.tiles.sortedBy { if (it.consumed) 0 else 1 }.forEach { tile ->
-            key(tile.id) { TileView(tile = tile, cell = cell, gap = gap) }
-        }
-
-        if (isGameOver || showWin) {
-            BoardOverlay(
-                title = if (showWin) "You win!" else "Game over!",
-                primaryLabel = if (showWin) "Keep going" else "Try again",
-                onPrimary = if (showWin) onKeepGoing else onTryAgain,
-                secondaryLabel = if (showWin) "New Game" else null,
-                onSecondary = onTryAgain,
-            )
         }
     }
 }
@@ -133,13 +154,21 @@ private fun TileView(tile: Tile, cell: Dp, gap: Dp) {
     )
     val scale = remember { Animatable(if (tile.justSpawned) 0f else 1f) }
     LaunchedEffect(tile.id, tile.value) {
-        if (tile.justSpawned) {
-            delay(SLIDE_MILLIS.toLong())
-            scale.animateTo(1f, tween(POP_MILLIS))
-        } else if (tile.justMerged) {
-            delay(SLIDE_MILLIS.toLong())
-            scale.animateTo(1.1f, tween(POP_MILLIS / 2))
-            scale.animateTo(1f, tween(POP_MILLIS / 2))
+        when {
+            tile.justSpawned -> {
+                delay(SLIDE_MILLIS.toLong())
+                scale.animateTo(1f, tween(POP_MILLIS))
+            }
+            tile.justMerged -> {
+                // The tile may merge while its spawn pop is still pending (a swipe within
+                // SLIDE_MILLIS of spawning); restarting the effect would otherwise leave
+                // it stuck at scale 0 until the pulse, blinking it out mid-board.
+                if (scale.value < 1f) scale.snapTo(1f)
+                delay(SLIDE_MILLIS.toLong())
+                scale.animateTo(1.1f, tween(POP_MILLIS / 2))
+                scale.animateTo(1f, tween(POP_MILLIS / 2))
+            }
+            scale.value != 1f -> scale.snapTo(1f)
         }
     }
 
@@ -150,12 +179,23 @@ private fun TileView(tile: Tile, cell: Dp, gap: Dp) {
         digits == 3 -> 26f
         else -> 20f
     }
-    val fontSize = (baseSize * (cell.value / 78f)).sp
+    // Sized from the cell in dp (not sp) so system font scaling cannot grow the
+    // number past its fixed-size cell and clip it unreadably.
+    val fontSize = with(LocalDensity.current) { (cell * (baseSize / 78f)).toSp() }
+    val tileSemantics = if (tile.consumed) {
+        // Consumed tiles exist only for the merge animation; hide them from TalkBack.
+        Modifier.clearAndSetSemantics {}
+    } else {
+        Modifier.semantics(mergeDescendants = true) {
+            contentDescription = "${tile.value}, row ${tile.row + 1}, column ${tile.col + 1}"
+        }
+    }
 
     Box(
         modifier = Modifier
             .offset(x = x, y = y)
             .size(cell)
+            .then(tileSemantics)
             .graphicsLayer {
                 scaleX = scale.value
                 scaleY = scale.value
@@ -198,18 +238,20 @@ private fun BoardOverlay(
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = colors.text,
+                // End-of-game state must be announced, not just drawn over the board.
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PrimaryButton(
                     text = primaryLabel,
                     onClick = onPrimary,
-                    modifier = Modifier.height(44.dp),
+                    modifier = Modifier.height(48.dp),
                 )
                 if (secondaryLabel != null) {
                     PrimaryButton(
                         text = secondaryLabel,
                         onClick = onSecondary,
-                        modifier = Modifier.height(44.dp),
+                        modifier = Modifier.height(48.dp),
                     )
                 }
             }
