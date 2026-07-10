@@ -7,7 +7,7 @@ and version numbers follow [Semantic Versioning](https://semver.org/spec/v2.0.0.
 Each released version matches a Play Store release; the Play release notes are
 a condensed form of the entry here.
 
-## [1.0.1] - Unreleased
+## [1.0.1] - 2026-07-10
 
 ### Added
 
@@ -38,6 +38,11 @@ a condensed form of the entry here.
 - Tile numbers no longer clip at large system font sizes
 - Opening the GitHub link no longer crashes on devices without a browser
 - The Settings screen showed a hardcoded version number
+- Tile spawn and merge animations no longer replay when the screen rebuilds,
+  such as when folding or unfolding the device or returning from Settings
+- The swipe distance needed to register a move is now consistent across
+  screen densities instead of being over-sensitive on high-density displays
+- The GitHub link in Settings now has a full-size touch target
 
 ## [1.0.0] - 2026-07-04
 

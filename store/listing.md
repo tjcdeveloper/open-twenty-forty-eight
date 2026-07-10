@@ -43,13 +43,13 @@ https://github.com/tjcdeveloper/open-twenty-forty-eight
 ## Release notes (per release)
 
 Play release notes are brief one-or-two-line summaries; the detailed log
-stays in CHANGELOG.md and is not published to the store. For 1.0.1 (not yet
-released):
+stays in CHANGELOG.md and is not published to the store.
 
 ```
 <en-GB>
-[1.0.1] - TBC
-Press back twice to exit, so a stray back press no longer closes the game.
+[1.0.1] - 2026-07-10
+Press back twice to exit, TalkBack accessibility support, and a round of
+stability and polish fixes.
 
 [1.0.0] - 2026-07-04
 Initial release.
