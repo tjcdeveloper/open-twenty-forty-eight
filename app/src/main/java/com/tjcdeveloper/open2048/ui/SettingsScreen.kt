@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -128,16 +129,22 @@ fun SettingsScreen(viewModel: GameViewModel, onBack: () -> Unit) {
                     color = colors.secondary,
                 )
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    text = "View source on GitHub →",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.link,
-                    modifier = Modifier.clickable(role = Role.Button) {
-                        // No browser available (e.g. disabled by policy) must not crash.
-                        runCatching { uriHandler.openUri(GITHUB_URL) }
-                    },
-                )
+                Box(
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .clickable(role = Role.Button) {
+                            // No browser available (e.g. disabled by policy) must not crash.
+                            runCatching { uriHandler.openUri(GITHUB_URL) }
+                        },
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Text(
+                        text = "View source on GitHub →",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.link,
+                    )
+                }
             }
         }
     }

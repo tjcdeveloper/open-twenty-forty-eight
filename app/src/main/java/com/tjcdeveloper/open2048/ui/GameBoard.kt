@@ -51,14 +51,17 @@ import kotlin.math.abs
 
 private const val SLIDE_MILLIS = 100
 private const val POP_MILLIS = 150
-private const val SWIPE_THRESHOLD_PX = 50f
+private val SWIPE_THRESHOLD = 50.dp
 
 /** Swipe detection for board moves. Apply to the board or any region surrounding it. */
 fun Modifier.swipeInput(onSwipe: (Direction) -> Unit): Modifier = pointerInput(Unit) {
+    // dp, not raw px: a pixel threshold would make swipes ~4x more hair-trigger on a
+    // high-density screen than on a low-density one.
+    val threshold = SWIPE_THRESHOLD.toPx()
     var drag = Offset.Zero
     detectDragGestures(
         onDragStart = { drag = Offset.Zero },
-        onDragEnd = { swipeDirection(drag)?.let(onSwipe) },
+        onDragEnd = { swipeDirection(drag, threshold)?.let(onSwipe) },
     ) { change, amount ->
         change.consume()
         drag += amount
@@ -75,6 +78,7 @@ fun GameBoard(
     showWin: Boolean,
     onTryAgain: () -> Unit,
     onKeepGoing: () -> Unit,
+    animations: TileAnimationRegistry,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalOpenColors.current
@@ -111,7 +115,7 @@ fun GameBoard(
 
                 // Consumed tiles first so merge survivors render above them.
                 game.tiles.sortedBy { if (it.consumed) 0 else 1 }.forEach { tile ->
-                    key(tile.id) { TileView(tile = tile, cell = cell, gap = gap) }
+                    key(tile.id) { TileView(tile = tile, cell = cell, gap = gap, animations = animations) }
                 }
             }
 
@@ -128,10 +132,10 @@ fun GameBoard(
     }
 }
 
-private fun swipeDirection(drag: Offset): Direction? {
+private fun swipeDirection(drag: Offset, threshold: Float): Direction? {
     val (dx, dy) = drag
     return when {
-        abs(dx) < SWIPE_THRESHOLD_PX && abs(dy) < SWIPE_THRESHOLD_PX -> null
+        abs(dx) < threshold && abs(dy) < threshold -> null
         abs(dx) >= abs(dy) && dx > 0 -> Direction.RIGHT
         abs(dx) >= abs(dy) -> Direction.LEFT
         dy > 0 -> Direction.DOWN
@@ -140,7 +144,7 @@ private fun swipeDirection(drag: Offset): Direction? {
 }
 
 @Composable
-private fun TileView(tile: Tile, cell: Dp, gap: Dp) {
+private fun TileView(tile: Tile, cell: Dp, gap: Dp, animations: TileAnimationRegistry) {
     val colors = LocalOpenColors.current
     val x by animateDpAsState(
         targetValue = gap + (cell + gap) * tile.col,
@@ -152,14 +156,18 @@ private fun TileView(tile: Tile, cell: Dp, gap: Dp) {
         animationSpec = tween(SLIDE_MILLIS),
         label = "tileY",
     )
-    val scale = remember { Animatable(if (tile.justSpawned) 0f else 1f) }
+    // Start hidden only for a spawn whose pop hasn't played yet — flags stay set on the
+    // state until the next slide, so without the registry a recomposition from scratch
+    // (fold layout swap, Settings round trip) would replay old animations.
+    val startHidden = remember(tile.id) { tile.justSpawned && !animations.spawnPlayed(tile.id) }
+    val scale = remember { Animatable(if (startHidden) 0f else 1f) }
     LaunchedEffect(tile.id, tile.value) {
         when {
-            tile.justSpawned -> {
+            tile.justSpawned && animations.claimSpawn(tile.id) -> {
                 delay(SLIDE_MILLIS.toLong())
                 scale.animateTo(1f, tween(POP_MILLIS))
             }
-            tile.justMerged -> {
+            tile.justMerged && animations.claimMerge(tile.id, tile.value) -> {
                 // The tile may merge while its spawn pop is still pending (a swipe within
                 // SLIDE_MILLIS of spawning); restarting the effect would otherwise leave
                 // it stuck at scale 0 until the pulse, blinking it out mid-board.

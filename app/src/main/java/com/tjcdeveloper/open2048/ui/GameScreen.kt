@@ -269,6 +269,7 @@ private fun BoardArea(
             showWin = viewModel.showWinOverlay,
             onTryAgain = viewModel::newGame,
             onKeepGoing = viewModel::acknowledgeWin,
+            animations = viewModel.tileAnimations,
         )
     }
 }

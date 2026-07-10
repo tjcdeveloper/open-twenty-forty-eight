@@ -129,29 +129,34 @@ private fun AppContent(
         exitPromptVisible = false
     }
 
+    // Registered outside the isLoaded gate so a back press during the brief load
+    // window still requires the double press instead of exiting immediately. The
+    // Settings BackHandler composes later, so it wins while Settings is open.
+    BackHandler(enabled = !showSettings) {
+        if (doubleBackToExit.onBackPressed(SystemClock.elapsedRealtime())) {
+            activity?.finish()
+            return@BackHandler
+        }
+        exitPromptCount++
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.page),
     ) {
-        if (!viewModel.isLoaded) return@Box
-        Box(modifier = Modifier.safeDrawingPadding()) {
-            if (showSettings) {
-                BackHandler { showSettings = false }
-                SettingsScreen(viewModel = viewModel, onBack = { showSettings = false })
-            } else {
-                BackHandler {
-                    if (doubleBackToExit.onBackPressed(SystemClock.elapsedRealtime())) {
-                        activity?.finish()
-                        return@BackHandler
-                    }
-                    exitPromptCount++
+        if (viewModel.isLoaded) {
+            Box(modifier = Modifier.safeDrawingPadding()) {
+                if (showSettings) {
+                    BackHandler { showSettings = false }
+                    SettingsScreen(viewModel = viewModel, onBack = { showSettings = false })
+                } else {
+                    GameScreen(
+                        viewModel = viewModel,
+                        widthSizeClass = widthSizeClass,
+                        onOpenSettings = { showSettings = true },
+                    )
                 }
-                GameScreen(
-                    viewModel = viewModel,
-                    widthSizeClass = widthSizeClass,
-                    onOpenSettings = { showSettings = true },
-                )
             }
         }
         ExitPrompt(

@@ -28,6 +28,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = GameRepository(application)
     private val history = MoveHistory<GameState>(MAX_UNDO_HISTORY)
+    val tileAnimations = TileAnimationRegistry()
 
     // Saves must outlive the ViewModel: DataStore runs a queued write's transform on the
     // caller's Job, so a save launched in viewModelScope just before the activity finishes
@@ -109,6 +110,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun newGame() {
         history.clear()
+        tileAnimations.clear()
         winAcknowledged = false
         game = GameEngine.newGame(gridSize, idStart = game.nextId)
         syncHistoryFlags()
@@ -118,6 +120,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun setGridSize(size: Int) {
         if (size == gridSize) return
         history.clear()
+        tileAnimations.clear()
         winAcknowledged = false
         game = GameEngine.newGame(size, idStart = game.nextId)
         syncHistoryFlags()
